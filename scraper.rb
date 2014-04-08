@@ -4,12 +4,12 @@ require 'mechanize'
 # Scraping from Masterview 2.0
 
 def scrape_page(page, comment_url)
-  page.at("table.rgMasterTable").search("tr.rgRow,tr.rgAltRow").each do |tr|
+  page.at("table table").search("tr.tableLine").each do |tr|
     tds = tr.search('td').map{|t| t.inner_html.gsub("\r\n", "").strip}
     day, month, year = tds[2].split("/").map{|s| s.to_i}
     record = {
-      "info_url" => (page.uri + tr.search('td').at('a')["href"]).to_s,
-      "council_reference" => tds[1],
+      "info_url" => (page.uri + tr.at('td').at('a')["href"]).to_s,
+      "council_reference" => tds[1].squeeze(" ").strip,
       "date_received" => Date.new(year, month, day).to_s,
       "description" => tds[3].gsub("&amp;", "&").split("<br>")[1].squeeze(" ").strip,
       "address" => tds[3].gsub("&amp;", "&").split("<br>")[0].gsub("\r", " ").gsub("<strong>","").gsub("</strong>","").squeeze(" ").strip,
@@ -43,8 +43,8 @@ def click(page, doc)
   end
 end
 
-url = "http://pdonline.logan.qld.gov.au/MasterViewUI/Modules/ApplicationMaster/default.aspx?page=found&1=thismonth&4a=&6=F"
-comment_url = "mailto:council@logan.qld.gov.au"
+url = "http://wsconline.wyong.nsw.gov.au/applicationtracking/modules/applicationmaster/default.aspx?page=found&1=thismonth&4a=437&5=T"
+comment_url = "mailto:wsc@wyong.nsw.gov.au"
 
 agent = Mechanize.new
 
@@ -53,20 +53,11 @@ page = agent.get(url)
 
 # This is weird. There are two forms with the Agree / Disagree buttons. One of them
 # works the other one doesn't. Go figure.
-form = page.forms[1]
-button = form.button_with(value: "Agree")
+form = page.forms.first
+button = form.button_with(value: "I Agree")
 raise "Can't find agree button" if button.nil?
-page = form.submit(button)
+form.submit(button)
+# Doesn't redirect
+page = agent.get(url)
 
-current_page_no = 1
-next_page_link = true
-
-while next_page_link
-  puts "Scraping page #{current_page_no}..."
-  scrape_page(page, comment_url)
-
-  current_page_no += 1
-  next_page_link = page.at(".rgPageNext")
-  page = click(page, next_page_link)
-  next_page_link = nil if page.nil?
-end
+scrape_page(page, comment_url)
