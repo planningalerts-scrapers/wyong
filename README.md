@@ -1,1 +1,15 @@
-This is a scraper that runs on [Morph](https://morph.io). To get started [see the documentation](https://morph.io/documentation)
+# Wyong Council Scraper
+
+* Server - .NET
+* Cookie tracking - Yes
+* Pagnation - No
+* Javascript - Yes
+* Clearly defined data within a row - Sort of
+
+Setup MORPH_PERIOD for data recovery, available options are
+
+* thisweek (default)
+* thismonth
+* lastmonth
+
+Enjoy
