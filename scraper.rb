@@ -3,6 +3,16 @@ require 'mechanize'
 
 # Scraping from Masterview 2.0
 
+case ENV['MORPH_PERIOD']
+  when 'lastmonth'
+    period = 'lastmonth'
+  when 'thismonth'
+    period = 'thismonth'
+  else
+    period = 'thisweek'
+end
+puts "Getting data in `" + period + "`, changable via MORPH_PERIOD variable"
+
 def scrape_page(page, comment_url)
   page.at("table table").search("tr.tableLine").each do |tr|
     tds = tr.search('td').map{|t| t.inner_html.gsub("\r\n", "").strip}
@@ -54,7 +64,7 @@ def click(page, doc)
   end
 end
 
-url = "http://wsconline.wyong.nsw.gov.au/applicationtracking/modules/applicationmaster/default.aspx?page=found&1=thismonth&4a=437&5=T"
+url = "http://wsconline.wyong.nsw.gov.au/applicationtracking/modules/applicationmaster/default.aspx?page=found&1=" + period + "&4a=437&5=T"
 comment_url = "mailto:wsc@wyong.nsw.gov.au"
 
 agent = Mechanize.new
