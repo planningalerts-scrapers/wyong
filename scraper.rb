@@ -3,25 +3,46 @@ require 'mechanize'
 
 # Scraping from Masterview 2.0
 
+case ENV['MORPH_PERIOD']
+  when 'lastmonth'
+    period = 'lastmonth'
+  when 'thismonth'
+    period = 'thismonth'
+  else
+    period = 'thisweek'
+end
+puts "Getting data in `" + period + "`, changable via MORPH_PERIOD variable"
+
 def scrape_page(page, comment_url)
   page.at("table table").search("tr.tableLine").each do |tr|
     tds = tr.search('td').map{|t| t.inner_html.gsub("\r\n", "").strip}
     day, month, year = tds[2].split("/").map{|s| s.to_i}
+
+    description = tds[3].gsub("&amp;", "&").split("<br>")[1] rescue nil
+    if description.nil?
+      description = "Not supplied"
+    else
+      description = description.squeeze(" ").strip
+    end
+
     record = {
       "info_url" => (page.uri + tr.at('td').at('a')["href"]).to_s,
       "council_reference" => tds[1].squeeze(" ").strip,
       "date_received" => Date.new(year, month, day).to_s,
-      "description" => tds[3].gsub("&amp;", "&").split("<br>")[1].squeeze(" ").strip,
+      "description" => description,
       "address" => tds[3].gsub("&amp;", "&").split("<br>")[0].gsub("\r", " ").gsub("<strong>","").gsub("</strong>","").squeeze(" ").strip,
       "date_scraped" => Date.today.to_s,
       "comment_url" => comment_url
     }
-    #p record
+
     if (ScraperWiki.select("* from data where `council_reference`='#{record['council_reference']}'").empty? rescue true)
+      puts "Saving record " + record['council_reference'] + " - " + record['address']
+#       puts record
       ScraperWiki.save_sqlite(['council_reference'], record)
     else
       puts "Skipping already saved record " + record['council_reference']
     end
+
   end
 end
 
@@ -43,7 +64,7 @@ def click(page, doc)
   end
 end
 
-url = "http://wsconline.wyong.nsw.gov.au/applicationtracking/modules/applicationmaster/default.aspx?page=found&1=thismonth&4a=437&5=T"
+url = "http://wsconline.wyong.nsw.gov.au/applicationtracking/modules/applicationmaster/default.aspx?page=found&1=" + period + "&4a=437&5=T"
 comment_url = "mailto:wsc@wyong.nsw.gov.au"
 
 agent = Mechanize.new
