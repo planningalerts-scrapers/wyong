@@ -13,7 +13,7 @@ case ENV['MORPH_PERIOD']
 end
 puts "Getting data in `" + period + "`, changable via MORPH_PERIOD variable"
 
-def scrape_page(page, comment_url)
+def scrape_page(page)
   page.at("table table").search("tr.tableLine").each do |tr|
     tds = tr.search('td').map{|t| t.inner_html.gsub("\r\n", "").strip}
     day, month, year = tds[2].split("/").map{|s| s.to_i}
@@ -31,8 +31,7 @@ def scrape_page(page, comment_url)
       "date_received" => Date.new(year, month, day).to_s,
       "description" => description,
       "address" => tds[3].gsub("&amp;", "&").split("<br>")[0].gsub("\r", " ").gsub("<strong>","").gsub("</strong>","").squeeze(" ").strip,
-      "date_scraped" => Date.today.to_s,
-      "comment_url" => comment_url
+      "date_scraped" => Date.today.to_s
     }
 
     puts "Saving record " + record['council_reference'] + " - " + record['address']
@@ -61,7 +60,6 @@ def click(page, doc)
 end
 
 url = "http://wsconline.wyong.nsw.gov.au/applicationtracking/modules/applicationmaster/default.aspx?page=found&1=" + period + "&4a=437&5=T"
-comment_url = "mailto:wsc@wyong.nsw.gov.au"
 
 agent = Mechanize.new
 
@@ -77,4 +75,4 @@ form.submit(button)
 # Doesn't redirect
 page = agent.get(url)
 
-scrape_page(page, comment_url)
+scrape_page(page)
